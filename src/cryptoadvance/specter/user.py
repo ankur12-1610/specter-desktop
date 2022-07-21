@@ -72,6 +72,8 @@ class User(UserMixin):
         specter,
         jwt_token_id,
         jwt_token,
+        jwt_token_description,
+        jwt_token_descriptions = {},
         jwt_tokens = {},
         encrypted_user_secret=None,
         is_admin=False,
@@ -83,6 +85,8 @@ class User(UserMixin):
         self.jwt_token_id = jwt_token_id
         self.jwt_token = jwt_token
         self.jwt_tokens = jwt_tokens
+        self.jwt_token_description = jwt_token_description
+        self.jwt_token_descriptions = jwt_token_descriptions
         self.config = config
         self.encrypted_user_secret = encrypted_user_secret
         self.plaintext_user_secret = None
@@ -106,6 +110,8 @@ class User(UserMixin):
                 "username": user_dict["username"],
                 "jwt_token_id": user_dict.get("jwt_token_id", None),
                 "jwt_token": user_dict.get("jwt_token", None),
+                "jwt_token_description": user_dict.get("jwt_token_description", None),
+                "jwt_token_descriptions": user_dict.get("jwt_token_descriptions", {}),
                 "jwt_tokens": user_dict.get("jwt_tokens", {}),
                 "password_hash": user_dict[
                     "password"
@@ -209,26 +215,40 @@ class User(UserMixin):
         if autosave:
             self.save_info()
 
-    def get_all_tokens(self):
-        self.jwt_tokens = json.dumps(self.jwt_tokens.copy())
-        self.jwt_tokens = json.loads(self.jwt_tokens)
-        return self.jwt_tokens
+    def get_all_jwt_token_descriptions(self):
+        """ Returns a list of all jwt_token_descriptions """
+        self.jwt_token_descriptions = json.dumps(self.jwt_token_descriptions.copy())
+        self.jwt_token_descriptions = json.loads(self.jwt_token_descriptions)
+        return self.jwt_token_descriptions
         
-    def append_token(self, jwt_token_id, jwt_token):
+    def append_jwt_token(self, jwt_token_id, jwt_token):
+        """ Appends a new JWT token to the user's list of JWT tokens. """
         self.jwt_tokens = self.jwt_tokens.copy()
         self.jwt_tokens[jwt_token_id] = jwt_token
         self.save_info()
+    
+    def append_jwt_token_description(self, jwt_token_id, jwt_token_description):
+        """ Appends a jwt_token_description to the user's jwt_token_descriptions """
+        self.jwt_token_descriptions = self.jwt_token_descriptions.copy()
+        self.jwt_token_descriptions[jwt_token_id] = jwt_token_description
+        self.save_info()
 
-    def save_jwt_token(self, jwt_token_id, jwt_token):
+    def save_jwt_token(self, jwt_token_id, jwt_token, jwt_token_description):
+        """ Save a JWT token and its description to the user's config. """
         self.jwt_token_id = jwt_token_id
         self.jwt_token = jwt_token
+        self.jwt_token_description = jwt_token_description
         self.save_info()
 
     def delete_jwt_token(self, jwt_token_id):
+        """ Delete a JWT token from the user's account. """
         self.jwt_tokens = self.jwt_tokens.copy()
+        self.jwt_token_descriptions = self.jwt_token_descriptions.copy()
+        del self.jwt_token_descriptions[jwt_token_id]
         del self.jwt_tokens[jwt_token_id]
         self.jwt_token_id = None
         self.jwt_token = None
+        self.jwt_token_description = None
         self.save_info()
 
     def set_password(self, plaintext_password):
@@ -276,6 +296,7 @@ class User(UserMixin):
             "jwt_token_id": self.jwt_token_id,
             "jwt_token": self.jwt_token,
             "jwt_tokens": self.jwt_tokens,
+            "jwt_token_descriptions": self.jwt_token_descriptions,
             "encrypted_user_secret": self.encrypted_user_secret,
             "services": self.services,
         }
